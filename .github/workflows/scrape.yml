@@ -34,4 +34,14 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .  # 指定发布目录
+          
+      - name: Commit and push changes
+        env:
+          ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add v2ray/result.txt
+          git commit -m 'Update scraped text'
+          git push https://pengjunlong:${{ secrets.ACTIONS_TOKEN }}@github.com/pengjunlong/hw.git HEAD:main
 
