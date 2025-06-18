@@ -27,23 +27,11 @@ jobs:
 
       - name: Fetch data and save to file
         run: |
-          python scrape.py
+          python v2ray/scrape.py
 
-# 由 GitHub 在每次工作流运行时自动创建
-      #默认拥有当前仓库的读写权限
-      #有效期为单次工作流运行期间
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: .  # 指定发布目录
 
-#      - name: Commit and push changes
-#        env:
-#          ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
-#        run: |
-#          git config --global user.name 'github-actions[bot]'
-#          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-#          git add v2ray.txt
-#          git commit -m 'Update scraped text'
-#          git push https://pengjunlong:${{ secrets.ACTIONS_TOKEN }}@github.com/pengjunlong/scripts.git HEAD:main
