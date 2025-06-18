@@ -62,4 +62,4 @@ if __name__ == "__main__":
     text = deduplicate(text)
     print(text)
     text = base64.b64encode(text.encode('utf-8')).decode('utf-8')
-    save_text(text, "result.txt")
+    save_text(text, "v2ray/result.txt")
