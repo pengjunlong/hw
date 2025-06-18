@@ -43,5 +43,5 @@ jobs:
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add v2ray/result.txt
           git commit -m 'Update scraped text'
-          git push https://pengjunlong:${{ secrets.ACTIONS_TOKEN }}@github.com/pengjunlong/hw.git HEAD:main
+          git push https://${{ github.actor }}:${{ secrets.ACTIONS_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
 
