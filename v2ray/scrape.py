@@ -27,6 +27,7 @@ def fetch_text(url):
             logging.warning(f"{url} base64 decode failed: {str(e)}")
         if not text.endswith('\n'):
             text += '\n'
+        logging.info(f"Number of lines in text: {len(text.splitlines())}")
         return text
     except requests.exceptions.RequestException as e:
         logging.error(f"Error fetching {url}: {str(e)}")
@@ -171,9 +172,9 @@ if __name__ == "__main__":
 
         # 定义所有源函数
         sources = [
-            miluonode,v2rayshareorg, v2rayclashfree, nodefree,cczzuu,
+            miluonode, v2rayshareorg, v2rayclashfree, nodefree, cczzuu,
             oneclash, v2rayshare, aiboboxx, v2rayfree,
-            ebrasha, jichangx,
+            jichangx,
         ]
 
         # 依次调用每个源函数
@@ -193,6 +194,7 @@ if __name__ == "__main__":
 
         logging.info("Deduplicating data")
         text = deduplicate(text)
+        logging.info(f"Number of lines in deduplicated text: {len(text.splitlines())}")
 
         logging.info("Encoding data to base64")
         text = base64.b64encode(text.encode('utf-8')).decode('utf-8')
