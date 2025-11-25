@@ -1,4 +1,5 @@
 import base64
+import json
 import logging
 from datetime import datetime
 
@@ -154,6 +155,96 @@ def ebrasha():
     return text
 
 
+def add_source_prefix(text, source_name):
+    """
+    为各种协议的链接添加 source 前缀到备注信息
+    支持的协议：vmess://, vless://, shadowsocks://, ss://, trojan://
+    对于 vmess:// 协议，会解码 JSON 并修改 ps 字段
+    对于其他协议，会在 URL 备注中添加前缀
+    """
+    try:
+        lines = text.split('\n')
+        processed_lines = []
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            original_line = line
+
+            # 处理 vmess:// 协议 - 需要解码 JSON 修改 ps 字段
+            if line.startswith('vmess://'):
+                line = process_vmess_link(line, source_name)
+            # 处理其他协议 - 在 URL 备注中添加前缀
+            elif line.startswith(('vless://', 'shadowsocks://', 'ss://', 'trojan://')):
+                # 分离链接和备注
+                if '#' in line:
+                    # 已经有备注，替换或添加前缀
+                    link_part, comment = line.split('#', 1)
+                    new_comment = f"[{source_name}] {comment}"
+                    line = f"{link_part}#{new_comment}"
+                else:
+                    # 没有备注，添加新的备注
+                    line = f"{line}#[{source_name}]"
+
+            processed_lines.append(line)
+
+        return '\n'.join(processed_lines)
+    except Exception as e:
+        logging.error(f"Error in add_source_prefix for {source_name}: {str(e)}")
+        return text
+
+
+def process_vmess_link(vmess_link, source_name):
+    """
+    处理 vmess:// 链接，解码 JSON 并修改 ps 字段
+    """
+    try:
+        # 分离 base64 部分和 URL 备注
+        if '#' in vmess_link:
+            base64_part, url_comment = vmess_link.split('#', 1)
+            base64_part = base64_part[8:]  # 去掉 'vmess://'
+        else:
+            base64_part = vmess_link[8:]  # 去掉 'vmess://'
+            url_comment = None
+
+        # 解码 base64
+        try:
+            decoded_json = base64.b64decode(base64_part).decode('utf-8')
+            config = json.loads(decoded_json)
+
+            # 修改 ps 字段
+            original_ps = config.get('ps', '')
+            if original_ps:
+                config['ps'] = f"[{source_name}] {original_ps}"
+            else:
+                config['ps'] = f"[{source_name}]"
+
+            # 重新编码为 base64
+            new_json = json.dumps(config, separators=(',', ':'), ensure_ascii=False)
+            new_base64 = base64.b64encode(new_json.encode('utf-8')).decode('utf-8')
+
+            # 重新构建链接
+            new_link = f"vmess://{new_base64}"
+            if url_comment:
+                new_link += f"#{url_comment}"
+
+            return new_link
+
+        except Exception as e:
+            logging.warning(f"Failed to decode/encode vmess JSON for {source_name}: {e}")
+            # 如果 JSON 处理失败，回退到简单的 URL 备注方式
+            if url_comment:
+                return f"{vmess_link.split('#')[0]}#[{source_name}] {url_comment}"
+            else:
+                return f"{vmess_link}#[{source_name}]"
+
+    except Exception as e:
+        logging.error(f"Error processing vmess link for {source_name}: {e}")
+        return vmess_link
+
+
 def deduplicate(text):
     try:
         lines = text.split('\n')
@@ -183,8 +274,10 @@ if __name__ == "__main__":
             logging.info(f"Processing source: {source_name}")
             result = source()
             if result:
-                text += result
-                logging.info(f"Successfully fetched data from {source_name}")
+                # 为当前源的数据添加 source 前缀
+                prefixed_result = add_source_prefix(result, source_name)
+                text += prefixed_result
+                logging.info(f"Successfully fetched and prefixed data from {source_name}")
             else:
                 logging.warning(f"No data fetched from {source_name}")
 
@@ -194,6 +287,7 @@ if __name__ == "__main__":
 
         logging.info("Deduplicating data")
         text = deduplicate(text)
+        logging.info(f"text: {text}")
         logging.info(f"Number of lines in deduplicated text: {len(text.splitlines())}")
 
         logging.info("Encoding data to base64")
