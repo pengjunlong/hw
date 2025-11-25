@@ -177,7 +177,7 @@ def add_source_prefix(text, source_name):
             if line.startswith('vmess://'):
                 line = process_vmess_link(line, source_name)
             # 处理其他协议 - 在 URL 备注中添加前缀
-            elif line.startswith(('vless://', 'shadowsocks://', 'ss://', 'trojan://')):
+            elif line.startswith(('vless://', 'shadowsocks://', 'ss://', 'trojan://', 'hysteria2://')):
                 # 分离链接和备注
                 if '#' in line:
                     # 已经有备注，替换或添加前缀
@@ -246,14 +246,75 @@ def process_vmess_link(vmess_link, source_name):
 
 
 def deduplicate(text):
+    """
+    基于链接核心部分进行去重，保留第一个遇到的版本
+    对于 vmess:// 协议，需要解码后比较（不包含 ps 字段）
+    对于其他协议，比较 # 之前的核心部分
+    """
     try:
         lines = text.split('\n')
-        lines = [line.split('#')[0].strip() for line in lines if line.strip()]
-        lines = sorted(set(lines))
-        return '\n'.join(lines)
+        seen_links = {}  # 存储核心链接到完整链接的映射
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # 提取链接核心部分用于去重
+            core_link = extract_core_link(line)
+
+            # 如果这个核心链接还没见过，就记录下来
+            if core_link and core_link not in seen_links:
+                seen_links[core_link] = line
+
+        # 返回去重后的链接
+        result = sorted(seen_links.values())
+        return '\n'.join(result)
     except Exception as e:
         logging.error(f"Error in deduplicate: {str(e)}")
         return text
+
+
+def extract_core_link(link):
+    """
+    提取链接的核心部分用于去重比较
+    对于 vmess://，返回解码后去掉 ps 字段的 JSON
+    对于其他协议，返回 # 之前的核心部分
+    """
+    try:
+        if link.startswith('vmess://'):
+            # 分离 base64 部分和 URL 备注
+            if '#' in link:
+                base64_part = link.split('#')[0][8:]
+            else:
+                base64_part = link[8:]
+
+            # 解码 JSON 并移除 ps 字段
+            try:
+                decoded_json = base64.b64decode(base64_part).decode('utf-8')
+                config = json.loads(decoded_json)
+
+                # 创建去掉 ps 字段的配置
+                config_without_ps = {k: v for k, v in config.items() if k != 'ps'}
+
+                # 重新编码为字符串（用于比较）
+                core_json = json.dumps(config_without_ps, separators=(',', ':'), sort_keys=True, ensure_ascii=False)
+                return f"vmess_core:{core_json}"
+            except Exception as e:
+                logging.warning(f"Failed to decode vmess for deduplication: {e}")
+                # 回退到原始链接
+                return link.split('#')[0] if '#' in link else link
+
+        else:
+            # 对于其他协议，返回 # 之前的核心部分
+            if '#' in link:
+                return link.split('#')[0]
+            else:
+                return link
+
+    except Exception as e:
+        logging.error(f"Error extracting core link: {e}")
+        return link
 
 
 if __name__ == "__main__":
@@ -261,18 +322,24 @@ if __name__ == "__main__":
         logging.info("Starting v2ray scraping process")
         text = ""
 
-        # 定义所有源函数
+        # 定义所有源函数及其名称
         sources = [
-            miluonode, v2rayshareorg, v2rayclashfree, nodefree, cczzuu,
-            oneclash, v2rayshare, aiboboxx, v2rayfree,
-            jichangx,
+            (miluonode, "miluonode"),
+            (v2rayshareorg, "v2rayshareorg"),
+            (v2rayclashfree, "v2rayclashfree"),
+            (nodefree, "nodefree"),
+            (cczzuu, "cczzuu"),
+            (oneclash, "oneclash"),
+            (v2rayshare, "v2rayshare"),
+            (aiboboxx, "aiboboxx"),
+            (v2rayfree, "v2rayfree"),
+            (jichangx, "jichangx"),
         ]
 
         # 依次调用每个源函数
-        for source in sources:
-            source_name = source.__name__
+        for source_func, source_name in sources:
             logging.info(f"Processing source: {source_name}")
-            result = source()
+            result = source_func()
             if result:
                 # 为当前源的数据添加 source 前缀
                 prefixed_result = add_source_prefix(result, source_name)
