@@ -267,12 +267,48 @@ def deduplicate(text):
             if core_link and core_link not in seen_links:
                 seen_links[core_link] = line
 
-        # 返回去重后的链接
-        result = sorted(seen_links.values())
+        # 返回去重后的链接，按协议类型排序
+        result = sort_by_protocol(list(seen_links.values()))
         return '\n'.join(result)
     except Exception as e:
         logging.error(f"Error in deduplicate: {str(e)}")
         return text
+
+
+def get_protocol_type(link):
+    """
+    获取链接的协议类型，用于排序
+    返回协议的优先级数字（数字越小排序越靠前）
+    """
+    protocol_order = {
+        'vmess://': 0,
+        'vless://': 1,
+        'trojan://': 2,
+        'shadowsocks://': 3,
+        'ss://': 4,
+        'hysteria2://': 5,
+    }
+
+    for protocol, order in protocol_order.items():
+        if link.startswith(protocol):
+            return order
+
+    # 未知协议排在最后
+    return 999
+
+
+def sort_by_protocol(links):
+    """
+    按协议类型对链接进行排序
+    排序顺序：vmess -> vless -> trojan -> shadowsocks -> ss -> hysteria2 -> 其他
+    """
+    try:
+        # 使用协议类型作为主排序键，链接本身作为次排序键（确保稳定性）
+        return sorted(links, key=lambda link: (get_protocol_type(link), link))
+    except Exception as e:
+        logging.error(f"Error in sort_by_protocol: {e}")
+        # 如果排序失败，返回原始顺序
+        return links
 
 
 def extract_core_link(link):
