@@ -15,20 +15,65 @@ logging.basicConfig(
 
 
 def fetch_text(url):
+    """模拟浏览器请求，避免被网站拒绝"""
     try:
         logging.info(f"Fetching from: {url}")
-        response = requests.get(url, timeout=10)
+
+        # 创建一个session，保持cookie
+        session = requests.Session()
+
+        # 浏览器请求头
+        headers = {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'priority': 'u=0, i',
+            'sec-ch-ua': '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'none',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
+        }
+
+        # 初始cookies
+        cookies = {
+            '_ga': 'GA1.1.1295861470.1772533462',
+            '_ga_YPV3FLCLJZ': 'GS2.1.s1772596569$o2$g1$t1772596576$j53$l0$h0'
+        }
+
+        # 使用session发送请求
+        response = session.get(
+            url,
+            headers=headers,
+            cookies=cookies,
+            timeout=30,
+            allow_redirects=True
+        )
+
         response.raise_for_status()  # 检查HTTP错误
+
         soup = BeautifulSoup(response.content, 'html.parser')
         text = soup.get_text()
+
         try:
             if "://" not in text:
                 text = base64.b64decode(text).decode('utf-8')
         except Exception as e:
             logging.warning(f"{url} base64 decode failed: {str(e)}")
+
         if not text.endswith('\n'):
             text += '\n'
+
         logging.info(f"Number of lines in text: {len(text.splitlines())}")
+
+        # 关闭session
+        session.close()
+
         return text
     except requests.exceptions.RequestException as e:
         logging.error(f"Error fetching {url}: {str(e)}")
@@ -59,18 +104,15 @@ def save_text(text, filename):
         logging.error(f"Error saving to {filename}: {str(e)}")
 
 
+
+
 @safe_fetch
-def v2rayshare():
+def v2rayfree():
     today = datetime.today()
-    url = f"https://v2rayshare.githubrowcontent.com/{today.year}/{today.month:02d}/{today.strftime('%Y%m%d')}.txt"
+    url = f"https://raw.githubusercontent.com/free-nodes/v2rayfree/main/v{today.strftime('%Y%m%d')}1"
     text = fetch_text(url)
-    return text
-
-
-@safe_fetch
-def aiboboxx():
-    url = "https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2"
-    text = fetch_text(url)
+    url = f"https://raw.githubusercontent.com/free-nodes/v2rayfree/main/v{today.strftime('%Y%m%d')}2"
+    text += fetch_text(url)
     return text
 
 
@@ -82,7 +124,113 @@ def miluonode():
     return text
 
 
+@safe_fetch
+def clashgithub():
+    today = datetime.today()
+    url = f"https://clashgithub.com/wp-content/uploads/rss/{today.strftime('%Y%m%d')}.txt"
+    text = fetch_text(url)
+    return text
 
+
+@safe_fetch
+def oneclash():
+    today = datetime.today()
+    url = f"https://oss.oneclash.cc/{today.year}/{today.month:02d}/{today.strftime('%Y%m%d')}.txt"
+    text = fetch_text(url)
+    return text
+
+
+@safe_fetch
+def mibei():
+    """从米呗网站获取 v2ray 节点"""
+    try:
+        import re
+        today_str = datetime.today().strftime('%Y%m%d')
+        logging.info(f"Starting mibei scraping for date: {today_str}")
+
+        # 创建session用于保持cookie
+        session = requests.Session()
+        headers = {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
+        }
+
+        # 步骤1: 访问主页，获取包含今天日期的链接
+        logging.info(f"Step 1: Fetching main page: https://www.mibei77.com/")
+        response = session.get('https://www.mibei77.com/', headers=headers, timeout=30)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # 查找所有链接
+        article_url = None
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag['href']
+            # 检查是否包含今天日期且以 "-v2rayclash-vpn.html" 结尾
+            if today_str in href and href.endswith('-v2rayclash-vpn.html'):
+                article_url = href if href.startswith('http') else f"https://www.mibei77.com/{href}"
+                logging.info(f"Found article URL: {article_url}")
+                break
+
+        if not article_url:
+            logging.warning("No matching article found for today's date")
+            session.close()
+            return ""
+
+        # 步骤2: 访问文章页，获取 .txt 文件链接（从文本中提取）
+        logging.info(f"Step 2: Fetching article page: {article_url}")
+        response = session.get(article_url, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        # 使用正则表达式从文本中提取 https://mm.mibei77.com/ 开头且以 .txt 结尾的链接
+        text = response.text
+        txt_url_pattern = r'https://mm\.mibei77\.com/[^\s]+\.txt'
+        txt_urls = re.findall(txt_url_pattern, text)
+
+        if not txt_urls:
+            logging.warning("No txt file link found in article text")
+            session.close()
+            return ""
+
+        # 取第一个匹配的链接
+        txt_url = txt_urls[0]
+        logging.info(f"Found txt URL: {txt_url}")
+
+        # 步骤3: 访问 .txt 文件获取内容
+        logging.info(f"Step 3: Fetching txt file: {txt_url}")
+        response = session.get(txt_url, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        # 尝试解码 base64（如果需要）
+        text = response.text
+        try:
+            if "://" not in text:
+                text = base64.b64decode(text).decode('utf-8')
+        except Exception as e:
+            logging.warning(f"base64 decode failed: {str(e)}")
+
+        if not text.endswith('\n'):
+            text += '\n'
+
+        logging.info(f"Successfully fetched mibei data, lines: {len(text.splitlines())}")
+
+        session.close()
+        return text
+
+    except Exception as e:
+        logging.error(f"Error in mibei: {str(e)}")
+        return ""
+
+
+@safe_fetch
+def yoyapai():
+    today = datetime.today()
+    url = f"https://yoyapai.com/mianfeijiedian/{today.strftime('%Y%m%d')}-ssr-v2rayvpnjiedian-yoyapai.com.txt"
+    text = fetch_text(url)
+    return text
 
 
 @safe_fetch
@@ -102,19 +250,21 @@ def v2rayshareorg():
 
 
 @safe_fetch
-def v2rayclashfree():
+def freeclashnode():
     today = datetime.today()
-    url = f"https://v2rayclashfree.com/feed/v2ray-{today.strftime('%Y%m%d')}.txt"
+    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/0-{today.strftime('%Y%m%d')}.txt"
     text = fetch_text(url)
+    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/1-{today.strftime('%Y%m%d')}.txt"
+    text += fetch_text(url)
+    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/2-{today.strftime('%Y%m%d')}.txt"
+    text += fetch_text(url)
+    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/3-{today.strftime('%Y%m%d')}.txt"
+    text += fetch_text(url)
+    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/4-{today.strftime('%Y%m%d')}.txt"
+    text += fetch_text(url)
     return text
 
 
-@safe_fetch
-def nodefree():
-    today = datetime.today()
-    url = f"https://nodefree.githubrowcontent.com/{today.year}/{today.month:02d}/{today.strftime('%Y%m%d')}.txt"
-    text = fetch_text(url)
-    return text
 
 @safe_fetch
 def cczzuu():
@@ -132,20 +282,7 @@ def jichangx():
     return text
 
 
-@safe_fetch
-def oneclash():
-    today = datetime.today()
-    url = f"https://oneclash.githubrowcontent.com/{today.year}/{today.month:02d}/{today.strftime('%Y%m%d')}.txt"
-    text = fetch_text(url)
-    return text
 
-
-
-@safe_fetch
-def v2rayfree():
-    url = f"https://raw.githubusercontent.com/free-nodes/v2rayfree/main/v2"
-    text = fetch_text(url)
-    return text
 
 
 @safe_fetch
@@ -253,6 +390,7 @@ def deduplicate(text):
     """
     try:
         lines = text.split('\n')
+        logging.info(f"before deduplicate, Number of lines in text: {len(lines)}")
         seen_links = {}  # 存储核心链接到完整链接的映射
 
         for line in lines:
@@ -269,6 +407,7 @@ def deduplicate(text):
 
         # 返回去重后的链接，按协议类型排序
         result = sort_by_protocol(list(seen_links.values()))
+        logging.info(f"after deduplicate, Number of lines in text: {len(result)}")
         return '\n'.join(result)
     except Exception as e:
         logging.error(f"Error in deduplicate: {str(e)}")
@@ -361,15 +500,14 @@ if __name__ == "__main__":
         # 定义所有源函数及其名称
         sources = [
             (miluonode, "miluonode"),
-            (v2rayshareorg, "v2rayshareorg"),
-            (v2rayclashfree, "v2rayclashfree"),
-            (nodefree, "nodefree"),
+            (mibei, "mibei"),
             (cczzuu, "cczzuu"),
-            (oneclash, "oneclash"),
-            (v2rayshare, "v2rayshare"),
-            (aiboboxx, "aiboboxx"),
-            (v2rayfree, "v2rayfree"),
             (jichangx, "jichangx"),
+            (yoyapai, "yoyapai"),
+            (v2rayfree, "v2rayfree"),
+            (clashgithub, "clashgithub"),
+            (freeclashnode, "freeclashnode"),
+            (v2rayshareorg, "v2rayshareorg"),
         ]
 
         # 依次调用每个源函数
@@ -390,7 +528,7 @@ if __name__ == "__main__":
 
         logging.info("Deduplicating data")
         text = deduplicate(text)
-        logging.info(f"text: {text}")
+        # logging.info(f"text: {text}")
         logging.info(f"Number of lines in deduplicated text: {len(text.splitlines())}")
 
         logging.info("Encoding data to base64")
