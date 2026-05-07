@@ -1,10 +1,12 @@
 import base64
 import json
 import logging
-from datetime import datetime
+from datetime import datetime,timedelta
 
 import requests
 from bs4 import BeautifulSoup
+
+today = datetime.today()- timedelta(days=1)
 
 # 配置日志
 logging.basicConfig(
@@ -108,7 +110,6 @@ def save_text(text, filename):
 
 @safe_fetch
 def v2rayfree():
-    today = datetime.today()
     url = f"https://raw.githubusercontent.com/free-nodes/v2rayfree/main/v{today.strftime('%Y%m%d')}1"
     text = fetch_text(url)
     url = f"https://raw.githubusercontent.com/free-nodes/v2rayfree/main/v{today.strftime('%Y%m%d')}2"
@@ -118,7 +119,6 @@ def v2rayfree():
 
 @safe_fetch
 def miluonode():
-    today = datetime.today()
     url = f"http://miluonode.cczzuu.top/node/{today.strftime('%Y%m%d')}-v2ray.txt"
     text = fetch_text(url)
     return text
@@ -126,7 +126,6 @@ def miluonode():
 
 @safe_fetch
 def clashgithub():
-    today = datetime.today()
     url = f"https://clashgithub.com/wp-content/uploads/rss/{today.strftime('%Y%m%d')}.txt"
     text = fetch_text(url)
     return text
@@ -134,108 +133,23 @@ def clashgithub():
 
 @safe_fetch
 def oneclash():
-    today = datetime.today()
     url = f"https://oss.oneclash.cc/{today.year}/{today.month:02d}/{today.strftime('%Y%m%d')}.txt"
     text = fetch_text(url)
     return text
 
 
-@safe_fetch
-def mibei():
-    """从米呗网站获取 v2ray 节点"""
-    try:
-        import re
-        today_str = datetime.today().strftime('%Y%m%d')
-        logging.info(f"Starting mibei scraping for date: {today_str}")
 
-        # 创建session用于保持cookie
-        session = requests.Session()
-        headers = {
-            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
-            'cache-control': 'no-cache',
-            'pragma': 'no-cache',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36'
-        }
-
-        # 步骤1: 访问主页，获取包含今天日期的链接
-        logging.info(f"Step 1: Fetching main page: https://www.mibei77.com/")
-        response = session.get('https://www.mibei77.com/', headers=headers, timeout=30)
-        response.raise_for_status()
-
-        soup = BeautifulSoup(response.content, 'html.parser')
-
-        # 查找所有链接
-        article_url = None
-        for a_tag in soup.find_all('a', href=True):
-            href = a_tag['href']
-            # 检查是否包含今天日期且以 "-v2rayclash-vpn.html" 结尾
-            if today_str in href and href.endswith('-v2rayclash-vpn.html'):
-                article_url = href if href.startswith('http') else f"https://www.mibei77.com/{href}"
-                logging.info(f"Found article URL: {article_url}")
-                break
-
-        if not article_url:
-            logging.warning("No matching article found for today's date")
-            session.close()
-            return ""
-
-        # 步骤2: 访问文章页，获取 .txt 文件链接（从文本中提取）
-        logging.info(f"Step 2: Fetching article page: {article_url}")
-        response = session.get(article_url, headers=headers, timeout=30)
-        response.raise_for_status()
-
-        # 使用正则表达式从文本中提取 https://mm.mibei77.com/ 开头且以 .txt 结尾的链接
-        text = response.text
-        txt_url_pattern = r'https://mm\.mibei77\.com/[^\s]+\.txt'
-        txt_urls = re.findall(txt_url_pattern, text)
-
-        if not txt_urls:
-            logging.warning("No txt file link found in article text")
-            session.close()
-            return ""
-
-        # 取第一个匹配的链接
-        txt_url = txt_urls[0]
-        logging.info(f"Found txt URL: {txt_url}")
-
-        # 步骤3: 访问 .txt 文件获取内容
-        logging.info(f"Step 3: Fetching txt file: {txt_url}")
-        response = session.get(txt_url, headers=headers, timeout=30)
-        response.raise_for_status()
-
-        # 尝试解码 base64（如果需要）
-        text = response.text
-        try:
-            if "://" not in text:
-                text = base64.b64decode(text).decode('utf-8')
-        except Exception as e:
-            logging.warning(f"base64 decode failed: {str(e)}")
-
-        if not text.endswith('\n'):
-            text += '\n'
-
-        logging.info(f"Successfully fetched mibei data, lines: {len(text.splitlines())}")
-
-        session.close()
-        return text
-
-    except Exception as e:
-        logging.error(f"Error in mibei: {str(e)}")
-        return ""
 
 
 @safe_fetch
 def yoyapai():
-    today = datetime.today()
-    url = f"https://yoyapai.com/mianfeijiedian/{today.strftime('%Y%m%d')}-ssr-v2rayvpnjiedian-yoyapai.com.txt"
+    url = f"https://freenode.yoyapai.com/{today.strftime('%Y')}/{today.strftime('%m')}/{today.strftime('%d')}-yoyapai.com-ssr-v2rayvpn-mianfeijiedian.txt"
     text = fetch_text(url)
     return text
 
 
 @safe_fetch
 def v2rayshareorg():
-    today = datetime.today()
     url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/0-{today.strftime('%Y%m%d')}.txt"
     text = fetch_text(url)
     url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/1-{today.strftime('%Y%m%d')}.txt"
@@ -251,7 +165,6 @@ def v2rayshareorg():
 
 @safe_fetch
 def freeclashnode():
-    today = datetime.today()
     url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/0-{today.strftime('%Y%m%d')}.txt"
     text = fetch_text(url)
     url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/1-{today.strftime('%Y%m%d')}.txt"
@@ -268,7 +181,6 @@ def freeclashnode():
 
 @safe_fetch
 def cczzuu():
-    today = datetime.today()
     url = f"http://bikfx.cczzuu.top/node/{today.strftime('%Y%m%d')}-v2ray.txt"
     text = fetch_text(url)
     return text
@@ -276,7 +188,6 @@ def cczzuu():
 
 @safe_fetch
 def jichangx():
-    today = datetime.today()
     url = f"https://jichangx.com/nodes/v2ray-{today.strftime('%Y%m%d')}-01"
     text = fetch_text(url)
     return text
@@ -500,7 +411,7 @@ if __name__ == "__main__":
         # 定义所有源函数及其名称
         sources = [
             (miluonode, "miluonode"),
-            (mibei, "mibei"),
+            
             (cczzuu, "cczzuu"),
             (jichangx, "jichangx"),
             (yoyapai, "yoyapai"),
