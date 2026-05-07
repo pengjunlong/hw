@@ -6,7 +6,7 @@ from datetime import datetime,timedelta
 import requests
 from bs4 import BeautifulSoup
 
-today = datetime.today()- timedelta(days=1)
+today = datetime.today()
 
 # 配置日志
 logging.basicConfig(
