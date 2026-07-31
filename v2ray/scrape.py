@@ -108,27 +108,13 @@ def save_text(text, filename):
 
 
 
-@safe_fetch
-def v2rayfree():
-    url = f"https://raw.githubusercontent.com/free-nodes/v2rayfree/main/v{today.strftime('%Y%m%d')}1"
-    text = fetch_text(url)
-    url = f"https://raw.githubusercontent.com/free-nodes/v2rayfree/main/v{today.strftime('%Y%m%d')}2"
-    text += fetch_text(url)
-    return text
 
 
-@safe_fetch
-def miluonode():
-    url = f"http://miluonode.cczzuu.top/node/{today.strftime('%Y%m%d')}-v2ray.txt"
-    text = fetch_text(url)
-    return text
 
 
-@safe_fetch
-def clashgithub():
-    url = f"https://clashgithub.com/wp-content/uploads/rss/{today.strftime('%Y%m%d')}.txt"
-    text = fetch_text(url)
-    return text
+
+
+
 
 
 @safe_fetch
@@ -141,11 +127,7 @@ def oneclash():
 
 
 
-@safe_fetch
-def yoyapai():
-    url = f"https://freenode.yoyapai.com/{today.strftime('%Y')}/{today.strftime('%m')}/{today.strftime('%d')}-yoyapai.com-ssr-v2rayvpn-mianfeijiedian.txt"
-    text = fetch_text(url)
-    return text
+
 
 
 @safe_fetch
@@ -154,12 +136,10 @@ def v2rayshareorg():
     text = fetch_text(url)
     url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/1-{today.strftime('%Y%m%d')}.txt"
     text += fetch_text(url)
-    url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/2-{today.strftime('%Y%m%d')}.txt"
-    text += fetch_text(url)
+    
     url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/3-{today.strftime('%Y%m%d')}.txt"
     text += fetch_text(url)
-    url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/4-{today.strftime('%Y%m%d')}.txt"
-    text += fetch_text(url)
+    
     return text
 
 
@@ -169,21 +149,15 @@ def freeclashnode():
     text = fetch_text(url)
     url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/1-{today.strftime('%Y%m%d')}.txt"
     text += fetch_text(url)
-    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/2-{today.strftime('%Y%m%d')}.txt"
-    text += fetch_text(url)
+    
     url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/3-{today.strftime('%Y%m%d')}.txt"
     text += fetch_text(url)
-    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/4-{today.strftime('%Y%m%d')}.txt"
-    text += fetch_text(url)
+    
     return text
 
 
 
-@safe_fetch
-def cczzuu():
-    url = f"http://bikfx.cczzuu.top/node/{today.strftime('%Y%m%d')}-v2ray.txt"
-    text = fetch_text(url)
-    return text
+
 
 
 @safe_fetch
@@ -196,11 +170,7 @@ def jichangx():
 
 
 
-@safe_fetch
-def ebrasha():
-    url = f"https://raw.githubusercontent.com/ebrasha/free-v2ray-public-list/refs/heads/main/all_extracted_configs.txt"
-    text = fetch_text(url)
-    return text
+
 
 
 def add_source_prefix(text, source_name):
@@ -410,15 +380,11 @@ if __name__ == "__main__":
 
         # 定义所有源函数及其名称
         sources = [
-            (miluonode, "miluonode"),
-            
-            (cczzuu, "cczzuu"),
             (jichangx, "jichangx"),
-            (yoyapai, "yoyapai"),
-            (v2rayfree, "v2rayfree"),
-            (clashgithub, "clashgithub"),
             (freeclashnode, "freeclashnode"),
             (v2rayshareorg, "v2rayshareorg"),
+            
+            (oneclash, "oneclash"),
         ]
 
         # 依次调用每个源函数
