@@ -124,7 +124,11 @@ def oneclash():
     return text
 
 
-
+@safe_fetch
+def singbox():
+    url = f"https://node.singbox.net/uploads/{today.year}/{today.month:02d}/0-{today.strftime('%Y%m%d')}.txt"
+    text = fetch_text(url)
+    return text
 
 
 
@@ -383,7 +387,7 @@ if __name__ == "__main__":
             (jichangx, "jichangx"),
             (freeclashnode, "freeclashnode"),
             (v2rayshareorg, "v2rayshareorg"),
-            
+            (singbox, "singbox"),
             (oneclash, "oneclash"),
         ]
 
