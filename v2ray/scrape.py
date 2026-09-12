@@ -125,8 +125,8 @@ def oneclash():
 
 
 @safe_fetch
-def singbox():
-    url = f"https://node.singbox.net/uploads/{today.year}/{today.month:02d}/0-{today.strftime('%Y%m%d')}.txt"
+def free18():
+    url = f"https://raw.githubusercontent.com/free18/v2ray/refs/heads/main/v.txt"
     text = fetch_text(url)
     return text
 
@@ -385,9 +385,9 @@ if __name__ == "__main__":
         # 定义所有源函数及其名称
         sources = [
             (jichangx, "jichangx"),
-            (freeclashnode, "freeclashnode"),
-            (v2rayshareorg, "v2rayshareorg"),
-            (singbox, "singbox"),
+           # (freeclashnode, "freeclashnode"),
+           # (v2rayshareorg, "v2rayshareorg"),
+            (free18, "free18"),
             (oneclash, "oneclash"),
         ]
 
