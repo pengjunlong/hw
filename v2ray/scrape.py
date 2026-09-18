@@ -112,11 +112,6 @@ def save_text(text, filename):
 
 
 
-
-
-
-
-
 @safe_fetch
 def oneclash():
     url = f"https://oss.oneclash.cc/{today.year}/{today.month:02d}/{today.strftime('%Y%m%d')}.txt"
@@ -131,7 +126,11 @@ def free18():
     return text
 
 
-
+@safe_fetch
+def youyapai():
+    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mianfeijiedian.txt"
+    text = fetch_text(url)
+    return text
 
 
 @safe_fetch
@@ -147,17 +146,7 @@ def v2rayshareorg():
     return text
 
 
-@safe_fetch
-def freeclashnode():
-    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/0-{today.strftime('%Y%m%d')}.txt"
-    text = fetch_text(url)
-    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/1-{today.strftime('%Y%m%d')}.txt"
-    text += fetch_text(url)
-    
-    url = f"https://node.freeclashnode.com/uploads/{today.year}/{today.month:02d}/3-{today.strftime('%Y%m%d')}.txt"
-    text += fetch_text(url)
-    
-    return text
+
 
 
 
@@ -385,8 +374,8 @@ if __name__ == "__main__":
         # 定义所有源函数及其名称
         sources = [
             (jichangx, "jichangx"),
-           # (freeclashnode, "freeclashnode"),
-           # (v2rayshareorg, "v2rayshareorg"),
+           (youyapai, "youyapai"),
+           (v2rayshareorg, "v2rayshareorg"),
             (free18, "free18"),
             (oneclash, "oneclash"),
         ]
