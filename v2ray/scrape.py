@@ -150,13 +150,6 @@ def v2rayshareorg():
     return text
 
 
-
-
-
-
-
-
-
 @safe_fetch
 def jichangx():
     url = f"https://jichangx.com/nodes/v2ray-{today.strftime('%Y%m%d')}-01"
@@ -298,8 +291,9 @@ def get_protocol_type(link):
     返回协议的优先级数字（数字越小排序越靠前）
     """
     protocol_order = {
-        'vmess://': 0,
-        'vless://': 1,
+        'vless://': 0,
+        'vmess://': 1,
+        
         'trojan://': 2,
         'shadowsocks://': 3,
         'ss://': 4,
