@@ -291,10 +291,10 @@ def get_protocol_type(link):
     返回协议的优先级数字（数字越小排序越靠前）
     """
     protocol_order = {
-        'vless://': 0,
+        'vless://': 9,
         'vmess://': 1,
         
-        'trojan://': 2,
+        'trojan://': 8,
         'shadowsocks://': 3,
         'ss://': 4,
         'hysteria2://': 5,
@@ -372,8 +372,8 @@ if __name__ == "__main__":
         # 定义所有源函数及其名称
         sources = [
             (jichangx, "jichangx"),
-           (youyapai, "youyapai"),
-           (v2rayshareorg, "v2rayshareorg"),
+            (youyapai, "youyapai"),
+            #(v2rayshareorg, "v2rayshareorg"),
             (free18, "free18"),
             (oneclash, "oneclash"),
         ]
