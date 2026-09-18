@@ -139,8 +139,11 @@ def v2rayshareorg():
     text = fetch_text(url)
     url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/1-{today.strftime('%Y%m%d')}.txt"
     text += fetch_text(url)
-    
+    url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/2-{today.strftime('%Y%m%d')}.txt"
+    text += fetch_text(url)
     url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/3-{today.strftime('%Y%m%d')}.txt"
+    text += fetch_text(url)
+    url = f"https://node.v2rayshare.org/uploads/{today.year}/{today.month:02d}/4-{today.strftime('%Y%m%d')}.txt"
     text += fetch_text(url)
     
     return text
