@@ -271,6 +271,9 @@ def deduplicate(text):
 
             # 提取链接核心部分用于去重
             core_link = extract_core_link(line)
+            protocol_type = get_protocol_type(core_link)
+            if protocol_type > 1:
+                continue
 
             # 如果这个核心链接还没见过，就记录下来
             if core_link and core_link not in seen_links:
@@ -291,10 +294,9 @@ def get_protocol_type(link):
     返回协议的优先级数字（数字越小排序越靠前）
     """
     protocol_order = {
-        'vless://': 9,
-        'vmess://': 1,
-        
-        'trojan://': 8,
+        'vmess://': 0,
+        'vless://': 1,
+        'trojan://': 2,
         'shadowsocks://': 3,
         'ss://': 4,
         'hysteria2://': 5,
