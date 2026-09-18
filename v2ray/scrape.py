@@ -271,9 +271,6 @@ def deduplicate(text):
 
             # 提取链接核心部分用于去重
             core_link = extract_core_link(line)
-            protocol_type = get_protocol_type(core_link)
-            if protocol_type > 1:
-                continue
 
             # 如果这个核心链接还没见过，就记录下来
             if core_link and core_link not in seen_links:
