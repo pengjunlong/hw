@@ -130,6 +130,8 @@ def free18():
 def youyapai():
     url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mianfeijiedian.txt"
     text = fetch_text(url)
+    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpnmianfeijiedian.txt"
+    text += fetch_text(url)
     return text
 
 
