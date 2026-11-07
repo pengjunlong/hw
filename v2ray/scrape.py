@@ -296,12 +296,12 @@ def get_protocol_type(link):
     返回协议的优先级数字（数字越小排序越靠前）
     """
     protocol_order = {
-        'vmess://': 0,
         'vless://': 1,
-        'trojan://': 2,
         'shadowsocks://': 3,
-        'ss://': 4,
-        'hysteria2://': 5,
+        'vmess://': 5,
+        'trojan://': 7,
+        'ss://': 9,
+        'hysteria2://': 10,
     }
 
     for protocol, order in protocol_order.items():
