@@ -132,6 +132,12 @@ def youyapai():
     text = fetch_text(url)
     url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpnmianfeijiedian.txt"
     text += fetch_text(url)
+    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mian-fei-jiedian.txt"
+    text += fetch_text(url)
+    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mianfei-jiedian.txt"
+    text += fetch_text(url)
+    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mianfei-jie-dian.txt"
+    text += fetch_text(url)
     return text
 
 
