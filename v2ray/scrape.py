@@ -3,6 +3,10 @@ import json
 import logging
 from datetime import datetime,timedelta
 
+import re
+import html
+from urllib.parse import urljoin, urlparse
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -14,6 +18,136 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+
+
+def get_today_str():
+    """获取当天的 'xx月xx日' 格式字符串"""
+    now = datetime.now()
+    return f"{now.month}月{now.day}日"
+
+def clean_html_entities(text):
+    """
+    清理 HTML 实体编码 (如 &#47; -> /)
+    """
+    if not text:
+        return ""
+    return html.unescape(text)
+
+def extract_date_links(base_url):
+    """
+    第一步：从首页抓取包含当天日期的超链接
+    """
+    today_str = get_today_str()
+    print(f"[1/2] 正在首页搜索包含 '{today_str}' 的链接...")
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+    }
+    
+    try:
+        response = requests.get(base_url, headers=headers, timeout=15)
+        response.raise_for_status()
+        # 尝试自动检测编码，防止中文乱码
+        response.encoding = response.apparent_encoding
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        target_links = []
+        
+        for a_tag in soup.find_all('a', href=True):
+            # 获取原始 href 和文本
+            raw_href = a_tag['href']
+            raw_text = a_tag.get_text(strip=True)
+            
+            # 1. 先解码 HTML 实体 (处理 &#47; 等情况)
+            clean_href = clean_html_entities(raw_href)
+            clean_text = clean_html_entities(raw_text)
+            
+            # 2. 判断链接地址或链接文本中是否包含当天日期
+            if today_str in clean_href or today_str in clean_text:
+                # 将相对路径转换为绝对路径
+                full_url = urljoin(base_url, clean_href)
+                target_links.append(full_url)
+                
+        # 去重
+        unique_links = list(set(target_links))
+        print(f"   找到 {len(unique_links)} 个相关链接。")
+        return unique_links
+        
+    except Exception as e:
+        print(f"   首页抓取失败: {e}")
+        return []
+
+def extract_txt_links_from_code(page_url):
+    """
+    第二步：访问指定页面，抓取 <code> 节点中包含 .txt 的 https 链接
+    """
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+    }
+    
+    txt_links = []
+    try:
+        response = requests.get(page_url, headers=headers, timeout=15)
+        response.raise_for_status()
+        response.encoding = response.apparent_encoding
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # 查找所有 <code> 标签
+        code_tags = soup.find_all('code')
+        
+        # 正则表达式匹配 https 开头且以 .txt 结尾的链接
+        # [^\s"'>]+ 匹配非空白、非引号、非大于号的字符
+        url_pattern = re.compile(r'https?://[^\s"\'>]+\.txt', re.IGNORECASE)
+        
+        for code in code_tags:
+            # 获取 code 标签内的文本并解码实体
+            code_text = code.get_text()
+            clean_code_text = clean_html_entities(code_text)
+            
+            found_urls = url_pattern.findall(clean_code_text)
+            txt_links.extend(found_urls)
+            
+    except Exception as e:
+        print(f"   访问页面失败: {e}")
+        
+    return list(set(txt_links))
+
+def youyapai_url():
+    base_url = "https://yoyapai.com/"
+    
+    # 1. 获取包含当天日期的链接
+    date_links = extract_date_links(base_url)
+    
+    if not date_links:
+        print("\n未找到包含当天日期的链接，程序结束。")
+        return
+
+    print(f"\n[2/2] 开始深入抓取 {len(date_links)} 个页面...")
+    
+    all_txt_links = []
+    for i, link in enumerate(date_links, 1):
+        print(f"   正在分析 ({i}/{len(date_links)}): {link}")
+        txt_urls = extract_txt_links_from_code(link)
+        if txt_urls:
+            print(f"   -> 发现 {len(txt_urls)} 个 .txt 链接")
+            all_txt_links.extend(txt_urls)
+        else:
+            print(f"   -> 未发现 .txt 链接")
+            
+    # 最终结果去重
+    final_results = list(set(all_txt_links))
+    
+    print("\n" + "="*40)
+    print(f"抓取完成！共找到 {len(final_results)} 个 .txt 链接:")
+    print("="*40)
+    for url in final_results:
+        return url
+        break
+        
+        
+
 
 
 def fetch_text(url):
@@ -128,16 +262,8 @@ def free18():
 
 @safe_fetch
 def youyapai():
-    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mianfeijiedian.txt"
+    url = youyapai_url()
     text = fetch_text(url)
-    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpnmianfeijiedian.txt"
-    text += fetch_text(url)
-    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mian-fei-jiedian.txt"
-    text += fetch_text(url)
-    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mianfei-jiedian.txt"
-    text += fetch_text(url)
-    url = f"https://freenode.yoyapai.com/{today.year}/{today.month:02d}/{today.strftime('%d')}-yoyapai.com-ssrv2ray-vpn-mianfei-jie-dian.txt"
-    text += fetch_text(url)
     return text
 
 
