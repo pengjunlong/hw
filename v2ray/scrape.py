@@ -509,7 +509,7 @@ if __name__ == "__main__":
             (jichangx, "jichangx"),
             (youyapai, "youyapai"),
             #(v2rayshareorg, "v2rayshareorg"),
-            (free18, "free18"),
+            #(free18, "free18"),
             (oneclash, "oneclash"),
         ]
 
