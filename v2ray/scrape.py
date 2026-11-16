@@ -39,7 +39,7 @@ def extract_date_links(base_url):
     第一步：从首页抓取包含当天日期的超链接
     """
     today_str = get_today_str()
-    print(f"[1/2] 正在首页搜索包含 '{today_str}' 的链接...")
+    logging.info(f"[1/2] 正在首页搜索包含 '{today_str}' 的链接...")
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
@@ -71,11 +71,11 @@ def extract_date_links(base_url):
                 
         # 去重
         unique_links = list(set(target_links))
-        print(f"   找到 {len(unique_links)} 个相关链接。")
+        logging.info(f"   找到 {len(unique_links)} 个相关链接。")
         return unique_links
         
     except Exception as e:
-        print(f"   首页抓取失败: {e}")
+        logging.info(f"   首页抓取失败: {e}")
         return []
 
 def extract_txt_links_from_code(page_url):
@@ -121,28 +121,27 @@ def youyapai_url():
     date_links = extract_date_links(base_url)
     
     if not date_links:
-        print("\n未找到包含当天日期的链接，程序结束。")
+        logging.info("\n未找到包含当天日期的链接，程序结束。")
         return
 
-    print(f"\n[2/2] 开始深入抓取 {len(date_links)} 个页面...")
+    logging.info(f"\n[2/2] 开始深入抓取 {len(date_links)} 个页面...")
     
     all_txt_links = []
     for i, link in enumerate(date_links, 1):
-        print(f"   正在分析 ({i}/{len(date_links)}): {link}")
+        logging.info(f"   正在分析 ({i}/{len(date_links)}): {link}")
         txt_urls = extract_txt_links_from_code(link)
         if txt_urls:
-            print(f"   -> 发现 {len(txt_urls)} 个 .txt 链接")
+            logging.info(f"   -> 发现 {len(txt_urls)} 个 .txt 链接")
             all_txt_links.extend(txt_urls)
         else:
-            print(f"   -> 未发现 .txt 链接")
+            logging.info(f"   -> 未发现 .txt 链接")
             
     # 最终结果去重
     final_results = list(set(all_txt_links))
     
-    print("\n" + "="*40)
-    print(f"抓取完成！共找到 {len(final_results)} 个 .txt 链接:")
-    print("="*40)
+    logging.info(f"抓取完成！共找到 {len(final_results)} 个 .txt 链接:")
     for url in final_results:
+        logging.info(url)
         return url
         break
         
