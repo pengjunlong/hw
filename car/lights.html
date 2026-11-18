@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>科目三灯光模拟 (5s限时版)</title>
+    <style>
+        :root { --primary: #1890ff; --success: #52c41a; --error: #f5222d; --bg: #f0f2f5; --card: #ffffff; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 600px; background: var(--card); border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 20px; box-sizing: border-box; position: relative; overflow: hidden; }
+        h1 { text-align: center; color: #333; font-size: 1.4rem; margin-bottom: 15px; }
+        
+        /* 倒计时条 */
+        .timer-bar-container {
+            height: 6px;
+            background: #eee;
+            border-radius: 3px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            display: none;
+        }
+        .timer-bar {
+            height: 100%;
+            background: var(--error);
+            width: 100%;
+            transform-origin: left;
+            transition: transform 1s linear;
+        }
+
+        .status-bar { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; color: #666; font-size: 0.9rem; }
+        .voice-box { 
+            background: #e6f7ff; border: 1px solid #91d5ff; border-radius: 8px; 
+            padding: 20px; margin-bottom: 20px; min-height: 80px; 
+            display: flex; align-items: center; justify-content: center; 
+            text-align: center; font-size: 1.1rem; color: #0050b3; font-weight: 500;
+        }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        button { border: none; border-radius: 8px; padding: 16px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.1s; touch-action: manipulation; width: 100%; }
+        button:active { transform: scale(0.96); }
+        
+        .btn-start { background: var(--primary); color: white; margin-bottom: 15px; font-size: 1.2rem; }
+        .btn-init { background: var(--success); color: white; margin-bottom: 10px; }
+        .btn-option { background: #fff; border: 2px solid #d9d9d9; color: #333; }
+        .btn-option:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .feedback { margin-top: 10px; padding: 15px; border-radius: 8px; display: none; text-align: center; }
+        .feedback.correct { background: #f6ffed; border: 1px solid #b7eb8f; color: var(--success); display: block; }
+        .feedback.wrong { background: #fff1f0; border: 1px solid #ffa39e; color: var(--error); display: block; }
+        
+        .result-screen { text-align: center; display: none; }
+        .score { font-size: 3rem; font-weight: bold; color: var(--primary); margin: 20px 0; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="game-container">
+    <h1>天门科目三灯光模拟</h1>
+    
+    <!-- 初始化按钮 -->
+    <button class="btn-init" id="init-btn" onclick="initVoice()">🔊 第一步：点击测试声音</button>
+    
+    <div class="status-bar">
+        <span id="progress">进度: 0/5</span>
+        <span id="score-display">得分: 0</span>
+    </div>
+
+    <!-- 5秒倒计时条 -->
+    <div class="timer-bar-container" id="timer-container">
+        <div class="timer-bar" id="timer-bar"></div>
+    </div>
+
+    <div class="voice-box" id="voice-text">
+        请先点击上方绿色按钮<br>确保手机媒体音量已开启
+    </div>
+
+    <div class="controls" id="controls" style="opacity: 0.5; pointer-events: none;">
+        <button class="btn-option" onclick="handleAnswer('low')">近光灯</button>
+        <button class="btn-option" onclick="handleAnswer('high')">远光灯</button>
+        <button class="btn-option" onclick="handleAnswer('flash')">远近交替</button>
+        <button class="btn-option" style="grid-column: span 2;" onclick="handleAnswer('park')">示廓灯 + 双闪</button>
+    </div>
+
+    <div id="feedback" class="feedback"></div>
+    <button class="btn-start hidden" id="start-btn" onclick="startExam()">开始考试</button>
+</div>
+
+<div class="container result-screen" id="result-container">
+    <h1>考试结果</h1>
+    <div class="score" id="final-score">0</div>
+    <p id="result-msg"></p>
+    <button class="btn-start" onclick="resetExam()">再练一次</button>
+</div>
+
+<script>
+    // 湖北天门简化版题库（无雾灯）
+    const questionBank = [
+        { text: "夜间在没有路灯、照明不良条件下行驶", answer: "high", desc: "照明不良用远光" },
+        { text: "夜间同方向近距离跟车行驶", answer: "low", desc: "跟车使用近光" },
+        { text: "夜间与机动车会车", answer: "low", desc: "会车使用近光" },
+        { text: "夜间在窄路、窄桥与非机动车会车", answer: "low", desc: "窄路会车使用近光" },
+        { text: "夜间在有路灯、照明良好的道路上行驶", answer: "low", desc: "照明良好用近光" },
+        { text: "夜间直行通过路口", answer: "low", desc: "直行通过路口用近光" },
+        { text: "夜间通过有交通信号灯控制的路口", answer: "low", desc: "有信号灯用近光" },
+        { text: "夜间通过急弯", answer: "flash", desc: "通过急弯需交替闪灯" },
+        { text: "夜间通过坡路", answer: "flash", desc: "通过坡路需交替闪灯" },
+        { text: "夜间通过拱桥", answer: "flash", desc: "通过拱桥需交替闪灯" },
+        { text: "夜间通过人行横道", answer: "flash", desc: "通过人行横道需交替闪灯" },
+        { text: "夜间通过没有交通信号灯控制的路口", answer: "flash", desc: "无信号灯路口需交替闪灯" },
+        { text: "夜间超越前方车辆", answer: "flash", desc: "超车需交替闪灯提醒" },
+        { text: "夜间在路边临时停车", answer: "park", desc: "临时停车开示廓灯+双闪" },
+        { text: "夜间在道路上发生故障，妨碍交通又难以移动", answer: "park", desc: "故障难移开示廓灯+双闪" }
+    ];
+
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let canAnswer = false;
+    let voiceInitialized = false;
+    let timerInterval = null;
+    let timeLeft = 5;
+
+    const synth = window.speechSynthesis;
+
+    function initVoice() {
+        if (!synth) {
+            alert('您的浏览器不支持语音合成，请更换 Chrome 或系统自带浏览器。');
+            return;
+        }
+        synth.cancel();
+        const utterance = new SpeechSynthesisUtterance('声音测试成功，请点击开始考试');
+        utterance.lang = 'zh-CN';
+        utterance.onend = function() {
+            voiceInitialized = true;
+            document.getElementById('init-btn').classList.add('hidden');
+            document.getElementById('start-btn').classList.remove('hidden');
+            document.getElementById('voice-text').innerText = '声音正常！准备开始';
+            document.getElementById('controls').style.opacity = '1';
+            document.getElementById('controls').style.pointerEvents = 'auto';
+        };
+        synth.speak(utterance);
+    }
+
+    function startExam() {
+        document.getElementById('start-btn').classList.add('hidden');
+        document.getElementById('feedback').style.display = 'none';
+        currentIndex = 0;
+        score = 0;
+        updateStatus();
+        // 随机抽取5题
+        currentQuestions = questionBank.sort(() => 0.5 - Math.random()).slice(0, 5);
+        nextQuestion();
+    }
+
+    function nextQuestion() {
+        if (currentIndex >= currentQuestions.length) {
+            showResult();
+            return;
+        }
+
+        const q = currentQuestions[currentIndex];
+        const voiceText = document.getElementById('voice-text');
+        const feedback = document.getElementById('feedback');
+        const timerContainer = document.getElementById('timer-container');
+        
+        feedback.style.display = 'none';
+        timerContainer.style.display = 'none';
+        voiceText.innerText = "请听题...";
+        canAnswer = false;
+        
+        document.getElementById('controls').style.pointerEvents = 'none';
+        document.getElementById('controls').style.opacity = '0.6';
+
+        speak(q.text, () => {
+            voiceText.innerText = q.text;
+            canAnswer = true;
+            document.getElementById('controls').style.pointerEvents = 'auto';
+            document.getElementById('controls').style.opacity = '1';
+            startTimer(); // 语音结束后开始5秒倒计时
+        });
+    }
+
+    function startTimer() {
+        timeLeft = 5;
+        const timerContainer = document.getElementById('timer-container');
+        const timerBar = document.getElementById('timer-bar');
+        timerContainer.style.display = 'block';
+        timerBar.style.transition = 'none';
+        timerBar.style.transform = 'scaleX(1)';
+        
+        // 强制重绘以重置动画
+        void timerBar.offsetWidth; 
+        
+        timerBar.style.transition = 'transform 5s linear';
+        timerBar.style.transform = 'scaleX(0)';
+
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft < 0) {
+                clearInterval(timerInterval);
+                handleTimeout();
+            }
+        }, 1000);
+    }
+
+    function handleTimeout() {
+        if (!canAnswer) return;
+        canAnswer = false;
+        document.getElementById('controls').style.pointerEvents = 'none';
+        
+        const q = currentQuestions[currentIndex];
+        const feedback = document.getElementById('feedback');
+        feedback.innerHTML = `<strong>⏰ 超时！不合格</strong><br>正确答案是：<strong>${getAnswerName(q.answer)}</strong>`;
+        feedback.className = 'feedback wrong';
+        feedback.style.display = 'block';
+        
+        setTimeout(() => {
+            currentIndex++;
+            updateStatus();
+            nextQuestion();
+        }, 2500);
+    }
+
+    function speak(text, callback) {
+        if (synth.speaking) synth.cancel();
+        const utterThis = new SpeechSynthesisUtterance(text);
+        utterThis.lang = 'zh-CN';
+        utterThis.rate = 0.95; 
+        utterThis.onend = function() { if (callback) callback(); };
+        utterThis.onerror = function() { if (callback) callback(); }; // 即使出错也继续，防止卡死
+        synth.speak(utterThis);
+    }
+
+    function handleAnswer(userAnswer) {
+        if (!canAnswer) return;
+        clearInterval(timerInterval); // 停止倒计时
+        
+        const q = currentQuestions[currentIndex];
+        const feedback = document.getElementById('feedback');
+        canAnswer = false;
+        document.getElementById('controls').style.pointerEvents = 'none';
+
+        if (userAnswer === q.answer) {
+            score += 20;
+            feedback.innerHTML = `<strong>✅ 正确</strong>`;
+            feedback.className = 'feedback correct';
+            setTimeout(() => {
+                currentIndex++;
+                updateStatus();
+                nextQuestion();
+            }, 1000);
+        } else {
+            feedback.innerHTML = `<strong>❌ 错误</strong><br>正确答案是：<strong>${getAnswerName(q.answer)}</strong><br>${q.desc}`;
+            feedback.className = 'feedback wrong';
+            setTimeout(() => {
+                currentIndex++;
+                updateStatus();
+                nextQuestion();
+            }, 2000);
+        }
+        feedback.style.display = 'block';
+    }
+
+    function getAnswerName(type) {
+        switch(type) {
+            case 'low': return '近光灯';
+            case 'high': return '远光灯';
+            case 'flash': return '远近交替';
+            case 'park': return '示廓灯+双闪';
+            default: return '';
+        }
+    }
+
+    function updateStatus() {
+        document.getElementById('progress').innerText = `进度: ${Math.min(currentIndex + 1, 5)}/5`;
+        document.getElementById('score-display').innerText = `得分: ${score}`;
+    }
+
+    function showResult() {
+        document.getElementById('game-container').classList.add('hidden');
+        document.getElementById('result-container').style.display = 'block';
+        document.getElementById('final-score').innerText = score;
+        const msg = document.getElementById('result-msg');
+        if (score === 100) {
+            msg.innerText = "太棒了！满分通过！🎉";
+            msg.style.color = "var(--success)";
+        } else {
+            msg.innerText = "很遗憾，不合格。请多加练习！💪";
+            msg.style.color = "var(--error)";
+        }
+    }
+
+    function resetExam() {
+        document.getElementById('result-container').style.display = 'none';
+        document.getElementById('game-container').classList.remove('hidden');
+        document.getElementById('init-btn').classList.remove('hidden');
+        document.getElementById('start-btn').classList.add('hidden');
+        document.getElementById('voice-text').innerHTML = '请先点击上方绿色按钮测试声音';
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('controls').style.opacity = '0.5';
+        document.getElementById('controls').style.pointerEvents = 'none';
+        document.getElementById('timer-container').style.display = 'none';
+        voiceInitialized = false;
+    }
+</script>
+</body>
+</html>
