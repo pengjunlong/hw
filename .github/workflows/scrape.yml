@@ -15,17 +15,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Check if v2ray directory changed
+        id: check_changes
+        run: |
+          # 获取上次提交和当前提交之间变化的文件
+          if [ "${{ github.event_name }}" == "push" ]; then
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+            if echo "$CHANGED_FILES" | grep -q "^v2ray/"; then
+              echo "V2RAY_CHANGED=true" >> $GITHUB_OUTPUT
+            else
+              echo "V2RAY_CHANGED=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            # 定时任务始终视为需要抓取
+            echo "V2RAY_CHANGED=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Python
+        if: steps.check_changes.outputs.V2RAY_CHANGED == 'true'
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
       - name: Install dependencies
+        if: steps.check_changes.outputs.V2RAY_CHANGED == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
       - name: Fetch data and save to file
+        if: steps.check_changes.outputs.V2RAY_CHANGED == 'true'
         run: |
           python v2ray/scrape.py
 
