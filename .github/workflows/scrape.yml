@@ -17,41 +17,48 @@ jobs:
         with:
           fetch-depth: 2 # 拉取最近两次提交
 
-      - name: Check if v2ray directory changed
-        id: check_changes
+      # 步骤 1: 判断是否需要执行抓取
+      - name: Check if scrape is needed
+        id: check_scrape
         run: |
-          # 获取上次提交和当前提交之间变化的文件
-          if [ "${{ github.event_name }}" == "push" ]; then
+          SHOULD_SCRAPE=false
+          
+          # 情况 1: 定时任务，始终抓取
+          if [ "${{ github.event_name }}" == "schedule" ]; then
+            SHOULD_SCRAPE=true
+            echo "Triggered by schedule."
+          # 情况 2: 推送事件，检查 v2ray 目录是否变化
+          elif [ "${{ github.event_name }}" == "push" ]; then
+            # 获取上次提交和当前提交之间变化的文件列表
             CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
             if echo "$CHANGED_FILES" | grep -q "^v2ray/"; then
-              echo "V2RAY_CHANGED=true" >> $GITHUB_OUTPUT
+              SHOULD_SCRAPE=true
+              echo "v2ray directory changed."
             else
-              echo "V2RAY_CHANGED=false" >> $GITHUB_OUTPUT
+              echo "Non-v2ray files changed. Skipping scrape."
             fi
-          else
-            # 定时任务始终视为需要抓取
-            echo "V2RAY_CHANGED=true" >> $GITHUB_OUTPUT
           fi
+          echo "SHOULD_SCRAPE=$SHOULD_SCRAPE" >> $GITHUB_OUTPUT
 
       - name: Set up Python
-        if: steps.check_changes.outputs.V2RAY_CHANGED == 'true'
+        if: steps.check_scrape.outputs.SHOULD_SCRAPE == 'true'
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
       - name: Install dependencies
-        if: steps.check_changes.outputs.V2RAY_CHANGED == 'true'
+        if: steps.check_scrape.outputs.SHOULD_SCRAPE == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
 
       - name: Fetch data and save to file
-        if: steps.check_changes.outputs.V2RAY_CHANGED == 'true'
+        if: steps.check_scrape.outputs.SHOULD_SCRAPE == 'true'
         run: |
           python v2ray/scrape.py
 
       - name: Commit and push changes
-        if: steps.check_changes.outputs.V2RAY_CHANGED == 'true'
+        if: steps.check_scrape.outputs.SHOULD_SCRAPE == 'true'
         env:
           ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
         run: |
